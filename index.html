@@ -1,0 +1,41 @@
+// --- CONFIGURATIE VAN DE LOCATIES ---
+const standplaatsen = [
+    { id: 'A', name: 'bij het Raam', img: 'img/leerplein_raam.jpg' },
+    { id: 'B', name: 'bij de Deur', img: 'img/leerplein_deur.jpg' },
+    { id: 'C', name: 'bij de Achterwand', img: 'img/leerplein_achterwand.jpg' }
+];
+
+// --- OC ACTIE: VISUEEL SPOOR PUSHEN ---
+window.addSpoor = function(spoorType) {
+    let imgUrl = "";
+    let label = "";
+
+    // Verwijs hier naar je eigen geüploade bestanden
+    switch(spoorType) {
+        case 'voetafdruk':
+            imgUrl = "img/spoor_schoen.jpg";
+            label = "SPOOR: AFDRUK TER HOOGTE VAN TAFEL 4";
+            break;
+        case 'schroevendraaier':
+            imgUrl = "img/spoor_schroevendraaier.jpg";
+            label = "SPOOR: GEREEDSCHAP NABIJ LOCKERS";
+            break;
+        case 'tas':
+            imgUrl = "img/spoor_tas.jpg";
+            label = "SPOOR: VOORWERP ONDER HET RAAM";
+            break;
+        case 'handschoenen':
+            imgUrl = "img/spoor_handschoen.jpg";
+            label = "SPOOR: MATERIAAL OP DE VLOER";
+            break;
+    }
+
+    const feedRef = ref(db, `${myKlas}/feed`);
+    push(feedRef, {
+        user: "OC",
+        img: imgUrl, // De student ziet nu jouw eigen foto
+        label: label,
+        type: 'spoor-visueel',
+        timestamp: serverTimestamp()
+    });
+};
