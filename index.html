@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>NATO PD-Training | Stabiele Multi-Spoor</title>
+    <title>NATO PD-Training | Full NATO Squads</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f8fafc; color: #334155; font-family: sans-serif; }
@@ -12,7 +12,7 @@
         }
         #decor-img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
         .placed-spoor { position: absolute; transform-origin: center center; z-index: 10; pointer-events: none; }
-        .oc-preview { cursor: move; border: 2px dashed #3b82f6; z-index: 50; pointer-events: auto !important; }
+        .oc-preview { cursor: move; border: 2px dashed #3b82f6; z-index: 50; pointer-events: auto !important; filter: brightness(1.2); }
         .live-feed { height: 350px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 11px; }
     </style>
 </head>
@@ -29,6 +29,13 @@
                 <option value="NATO_4_Delta">NATO 4 - Delta</option>
                 <option value="NATO_5_Echo">NATO 5 - Echo</option>
                 <option value="NATO_6_Foxtrot">NATO 6 - Foxtrot</option>
+                <option value="NATO_7_Golf">NATO 7 - Golf</option>
+                <option value="NATO_8_Hotel">NATO 8 - Hotel</option>
+                <option value="NATO_9_India">NATO 9 - India</option>
+                <option value="NATO_10_Juliett">NATO 10 - Juliett</option>
+                <option value="NATO_11_Kilo">NATO 11 - Kilo</option>
+                <option value="NATO_12_Lima">NATO 12 - Lima</option>
+                <option value="NATO_13_Mike">NATO 13 - Mike</option>
             </select>
             <div class="grid grid-cols-2 gap-4">
                 <button onclick="initApp('student')" class="bg-slate-800 text-white py-4 rounded font-bold uppercase text-[10px]">Student</button>
@@ -65,21 +72,21 @@
                     <button onclick="finalizeSpoor()" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-black text-[10px] uppercase tracking-widest">Definitief plaatsen</button>
                 </div>
             </div>
-            <div id="feed-container" class="live-feed p-4 space-y-2"></div>
+            <div id="feed-container" class="live-feed p-4 space-y-2 text-slate-500 font-mono"></div>
         </div>
 
         <div class="lg:col-span-4 space-y-4">
-            <div class="bg-white p-6 rounded-xl border border-slate-200">
-                <h3 class="text-[10px] font-bold uppercase text-slate-400 mb-4 tracking-widest">Dossiervorming</h3>
-                <textarea id="msg-input" class="w-full bg-slate-50 border rounded-lg p-4 text-sm outline-none" rows="15" placeholder="Beschrijf objectief..."></textarea>
-                <button onclick="submitReport()" class="w-full bg-slate-800 text-white mt-4 py-4 rounded-lg font-bold text-[10px] uppercase tracking-[0.2em]">Verzenden naar OC</button>
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="text-[10px] font-bold uppercase text-slate-400 mb-4 tracking-widest text-center border-b pb-2">Dossiervorming</h3>
+                <textarea id="msg-input" class="w-full bg-slate-50 border rounded-lg p-4 text-sm outline-none focus:border-slate-400" rows="15" placeholder="Noteer uw bevindingen objectief..."></textarea>
+                <button onclick="submitReport()" class="w-full bg-slate-800 text-white mt-4 py-4 rounded-lg font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-slate-700 transition">Verzenden naar OC</button>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, push, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB12mTMBnuxdC4W4htyFO_C7Dnh3maVKew",
@@ -94,7 +101,7 @@
 
         let myName, myKlas, userRole;
         let activeSpoor = null; 
-        let databaseObjects = {}; // Gebruik een object voor stabiele opslag
+        let databaseObjects = {}; 
 
         const views = [
             { n: 'Raam', i: 'leerplein_raam.jpg' },
@@ -106,7 +113,7 @@
             myName = document.getElementById('username').value.trim();
             myKlas = document.getElementById('klas').value;
             userRole = role;
-            if(!myName) return alert("Roepnummer?");
+            if(!myName) return alert("Identificatie vereist.");
             
             const pick = views[Math.floor(Math.random() * views.length)];
             document.getElementById('decor-img').src = pick.i;
@@ -140,19 +147,17 @@
         };
 
         function startListeners() {
-            // Luister naar sporen
             onValue(ref(db, `${myKlas}/pd_objects`), (snapshot) => {
                 databaseObjects = snapshot.val() || {};
                 renderAll();
             });
 
-            // Luister naar chat
             onValue(ref(db, `${myKlas}/livefeed`), (snapshot) => {
                 const feed = document.getElementById('feed-container');
                 feed.innerHTML = "";
                 snapshot.forEach(c => {
                     const d = c.val();
-                    feed.innerHTML += `<div class="p-2 border-b text-[11px]"><b class="uppercase">${d.user}:</b> ${d.text}</div>`;
+                    feed.innerHTML += `<div class="p-2 border-b text-[11px]"><b class="uppercase text-slate-400">${d.user}:</b> <span class="text-slate-600">${d.text}</span></div>`;
                 });
                 feed.scrollTop = feed.scrollHeight;
             });
@@ -162,12 +167,12 @@
             const layer = document.getElementById('sporen-layer');
             layer.innerHTML = "";
             
-            // 1. Teken alles uit de database
-            Object.values(databaseObjects).forEach(data => {
-                createImgElement(data, false);
+            // Teken bestaande items
+            Object.keys(databaseObjects).forEach(key => {
+                createImgElement(databaseObjects[key], false);
             });
 
-            // 2. Teken de preview (alleen voor OC)
+            // Teken preview
             if(userRole === 'oc' && activeSpoor) {
                 createImgElement(activeSpoor, true);
             }
@@ -179,7 +184,7 @@
             img.src = data.img;
             img.className = 'placed-spoor' + (isPreview ? ' oc-preview' : '');
             img.style.left = data.x + '%';
-            img.style.top = data.top || data.y + '%'; // Compatibiliteit check
+            img.style.top = data.y + '%';
             img.style.width = (10 * data.s) + '%';
             img.style.transform = `rotate(${data.r}deg)`;
 
@@ -189,8 +194,7 @@
                     document.onmousemove = (me) => {
                         activeSpoor.x = ((me.clientX - rect.left) / rect.width) * 100 - 5;
                         activeSpoor.y = ((me.clientY - rect.top) / rect.height) * 100 - 5;
-                        img.style.left = activeSpoor.x + '%';
-                        img.style.top = activeSpoor.y + '%';
+                        renderAll();
                     };
                     document.onmouseup = () => document.onmousemove = null;
                 };
@@ -200,13 +204,13 @@
 
         window.submitReport = () => {
             const val = document.getElementById('msg-input').value;
-            if(!val || val.toLowerCase().includes("meerdere")) return alert("Check inhoud!");
+            if(!val || val.toLowerCase().includes("meerdere")) return alert("Ongeldige invoer (Check 'meerdere').");
             push(ref(db, `${myKlas}/livefeed`), { user: myName, text: val });
             document.getElementById('msg-input').value = "";
         };
 
         window.resetClassData = () => {
-            if(confirm("PD volledig resetten?")) {
+            if(confirm("PD resetten voor deze klas?")) {
                 remove(ref(db, `${myKlas}/pd_objects`));
                 remove(ref(db, `${myKlas}/livefeed`));
                 activeSpoor = null;
