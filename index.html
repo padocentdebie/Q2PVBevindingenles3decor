@@ -2,35 +2,39 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>NATO PD-Training | Visuele Regie</title>
+    <title>NATO PD-Training | Multi-Spoor Regie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f8fafc; color: #334155; font-family: sans-serif; }
         #canvas-container { 
             position: relative; width: 100%; aspect-ratio: 16 / 9; 
             background: #000; overflow: hidden; border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
         }
         #decor-img { width: 100%; height: 100%; object-fit: cover; }
-        .placed-spoor { position: absolute; transform-origin: center center; z-index: 10; width: 80px; }
-        .oc-view .placed-spoor { cursor: move; border: 1px dashed rgba(255,255,255,0.5); }
-        .student-view .placed-spoor { pointer-events: none; }
-        .live-feed { height: 300px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 11px; }
+        .placed-spoor { position: absolute; transform-origin: center center; z-index: 10; pointer-events: none; }
+        /* Alleen het preview spoor van het OC is sleepbaar */
+        .oc-preview { cursor: move; border: 2px dashed #3b82f6; z-index: 20; pointer-events: auto !important; }
+        .live-feed { height: 350px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 11px; }
     </style>
 </head>
 <body class="p-4 lg:p-10">
 
-    <div id="login-overlay" class="fixed inset-0 bg-slate-50 z-50 flex items-center justify-center">
+    <div id="login-overlay" class="fixed inset-0 bg-slate-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border text-center">
-            <h2 class="text-lg font-bold mb-6 uppercase tracking-widest text-slate-700">Inloggen Training</h2>
-            <input type="text" id="username" placeholder="Roepnummer" class="w-full p-3 border rounded mb-4">
-            <select id="klas" class="w-full p-3 border rounded mb-6 text-slate-600">
+            <h2 class="text-lg font-bold mb-6 uppercase tracking-widest text-slate-700">NATO Operationele Inlog</h2>
+            <input type="text" id="username" placeholder="Naam / Dienstnummer" class="w-full p-3 border rounded mb-4 focus:ring-2 focus:ring-slate-400 outline-none font-bold">
+            <select id="klas" class="w-full p-3 border rounded mb-6 text-slate-600 font-bold">
                 <option value="NATO_1_Alpha">NATO 1 - Alpha</option>
                 <option value="NATO_2_Bravo">NATO 2 - Bravo</option>
                 <option value="NATO_3_Charlie">NATO 3 - Charlie</option>
+                <option value="NATO_4_Delta">NATO 4 - Delta</option>
+                <option value="NATO_5_Echo">NATO 5 - Echo</option>
+                <option value="NATO_6_Foxtrot">NATO 6 - Foxtrot</option>
             </select>
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="initApp('student')" class="bg-slate-800 text-white py-3 rounded font-bold uppercase text-[10px]">Student</button>
-                <button onclick="initApp('oc')" class="bg-slate-400 text-white py-3 rounded font-bold uppercase text-[10px]">OC Regie</button>
+                <button onclick="initApp('student')" class="bg-slate-800 text-white py-4 rounded font-bold uppercase text-[10px] tracking-widest">Student</button>
+                <button onclick="initApp('oc')" class="bg-slate-400 text-white py-4 rounded font-bold uppercase text-[10px] tracking-widest">OC Regie</button>
             </div>
         </div>
     </div>
@@ -42,34 +46,36 @@
                 <div id="sporen-layer"></div>
             </div>
 
-            <div id="oc-panel" class="hidden bg-slate-100 p-6 rounded-xl border">
+            <div id="oc-panel" class="hidden bg-slate-100 p-6 rounded-xl border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">Spoor selecteren</span>
-                    <button onclick="resetClassData()" class="text-red-400 text-[10px] uppercase font-bold">Reset PD</button>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">OC: Sporen Beheer</span>
+                    <button onclick="resetClassData()" class="text-red-500 text-[10px] font-bold uppercase hover:underline">Reset Volledige PD</button>
                 </div>
-                <div class="flex gap-2 mb-6">
-                    <button onclick="prepareSpoor('zoolspoor.png')" class="bg-white border px-3 py-2 rounded text-[10px] font-bold uppercase">Zoolspoor</button>
-                    <button onclick="prepareSpoor('schroevendraaier.png')" class="bg-white border px-3 py-2 rounded text-[10px] font-bold uppercase">Schroevendraaier</button>
-                    <button onclick="prepareSpoor('tas.png')" class="bg-white border px-3 py-2 rounded text-[10px] font-bold uppercase">Tas</button>
-                    <button onclick="prepareSpoor('handschoenen.png')" class="bg-white border px-3 py-2 rounded text-[10px] font-bold uppercase">Handschoenen</button>
+                <div class="flex flex-wrap gap-2 mb-6">
+                    <button onclick="prepareSpoor('zoolspoor.png')" class="bg-white border-2 hover:border-slate-400 px-4 py-2 rounded text-[10px] font-bold uppercase transition-all">Schoenafdruk</button>
+                    <button onclick="prepareSpoor('schroevendraaier.png')" class="bg-white border-2 hover:border-slate-400 px-4 py-2 rounded text-[10px] font-bold uppercase transition-all">Schroevendraaier</button>
+                    <button onclick="prepareSpoor('tas.png')" class="bg-white border-2 hover:border-slate-400 px-4 py-2 rounded text-[10px] font-bold uppercase transition-all">Tas</button>
+                    <button onclick="prepareSpoor('handschoenen.png')" class="bg-white border-2 hover:border-slate-400 px-4 py-2 rounded text-[10px] font-bold uppercase transition-all">Handschoenen</button>
                 </div>
-                <div id="transform-tools" class="hidden border-t pt-4 flex items-center justify-between">
-                    <div class="flex gap-2">
-                        <button onclick="adj(1.1, 0)" class="bg-white border w-8 h-8 rounded">+</button>
-                        <button onclick="adj(0.9, 0)" class="bg-white border w-8 h-8 rounded">-</button>
-                        <button onclick="adj(1, 15)" class="bg-white border w-8 h-8 rounded">↻</button>
+                
+                <div id="transform-tools" class="hidden border-t border-slate-200 pt-4 flex items-center justify-between">
+                    <div class="flex gap-2 items-center">
+                        <span class="text-[9px] font-bold text-slate-400 mr-2">AANPASSEN:</span>
+                        <button onclick="adj(1.1, 0)" class="bg-white border shadow-sm w-10 h-10 rounded-lg text-lg">+</button>
+                        <button onclick="adj(0.9, 0)" class="bg-white border shadow-sm w-10 h-10 rounded-lg text-lg">-</button>
+                        <button onclick="adj(1, 15)" class="bg-white border shadow-sm w-10 h-10 rounded-lg text-lg">↻</button>
                     </div>
-                    <button onclick="finalizeSpoor()" class="bg-slate-800 text-white px-4 py-2 rounded text-[10px] font-bold uppercase">Plaats op PD</button>
+                    <button onclick="finalizeSpoor()" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-blue-700 transition-all">Definitief plaatsen</button>
                 </div>
             </div>
-            <div id="feed-container" class="live-feed p-4"></div>
+            <div id="feed-container" class="live-feed p-4 space-y-2"></div>
         </div>
 
         <div class="lg:col-span-4 space-y-4">
-            <div class="bg-white p-6 rounded-xl border shadow-sm">
-                <h3 class="text-[10px] font-bold uppercase text-slate-400 mb-4">Waarneming</h3>
-                <textarea id="msg-input" class="w-full bg-slate-50 border rounded p-4 text-sm" rows="12"></textarea>
-                <button onclick="submitReport()" class="w-full bg-slate-800 text-white mt-4 py-4 rounded font-bold text-[10px] uppercase tracking-widest">Verzenden</button>
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="text-[10px] font-bold uppercase text-slate-400 mb-4 tracking-widest">Dossiervorming</h3>
+                <textarea id="msg-input" class="w-full bg-slate-50 border rounded-lg p-4 text-sm focus:ring-1 focus:ring-slate-300 outline-none" rows="15" placeholder="Beschrijf objectief..."></textarea>
+                <button onclick="submitReport()" class="w-full bg-slate-800 text-white mt-4 py-4 rounded-lg font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-slate-700 transition-all">Verzenden naar OC</button>
             </div>
         </div>
     </div>
@@ -90,7 +96,8 @@
         const db = getDatabase(app);
 
         let myName, myKlas, userRole;
-        let activeSpoor = null;
+        let activeSpoor = null; 
+        let currentObjects = [];
 
         const views = [
             { n: 'Raam', i: 'leerplein_raam.jpg' },
@@ -102,20 +109,20 @@
             myName = document.getElementById('username').value.trim();
             myKlas = document.getElementById('klas').value;
             userRole = role;
-            if(!myName) return alert("Roepnummer?");
+            if(!myName) return alert("Roepnummer verplicht.");
             
             const pick = views[Math.floor(Math.random() * views.length)];
             document.getElementById('decor-img').src = pick.i;
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('app-container').classList.remove('hidden');
-            document.body.classList.add(role === 'oc' ? 'oc-view' : 'student-view');
 
             if(role === 'oc') document.getElementById('oc-panel').classList.remove('hidden');
             startListeners();
         };
 
+        // --- OC PD REGIE ---
         window.prepareSpoor = (img) => {
-            activeSpoor = { x: 40, y: 40, s: 1, r: 0, img: img, isPreview: true };
+            activeSpoor = { x: 45, y: 45, s: 1, r: 0, img: img };
             renderLayer();
             document.getElementById('transform-tools').classList.remove('hidden');
         };
@@ -129,21 +136,29 @@
 
         window.finalizeSpoor = () => {
             if(!activeSpoor) return;
-            const finalData = {...activeSpoor};
-            delete finalData.isPreview;
-            push(ref(db, `${myKlas}/pd_objects`), finalData);
+            push(ref(db, `${myKlas}/pd_objects`), activeSpoor);
             activeSpoor = null;
             document.getElementById('transform-tools').classList.add('hidden');
+            renderLayer();
         };
 
         function startListeners() {
-            onValue(ref(db, `${myKlas}/pd_objects`), (snapshot) => { renderLayer(); });
+            // Luister naar objecten in de database
+            onValue(ref(db, `${myKlas}/pd_objects`), (snapshot) => {
+                currentObjects = [];
+                snapshot.forEach(child => {
+                    currentObjects.push(child.val());
+                });
+                renderLayer();
+            });
+
+            // Luister naar de chat/feed
             onValue(ref(db, `${myKlas}/livefeed`), (snapshot) => {
                 const feed = document.getElementById('feed-container');
                 feed.innerHTML = "";
                 snapshot.forEach(c => {
                     const d = c.val();
-                    feed.innerHTML += `<div class="p-2 border-b"><b>${d.user}:</b> ${d.text}</div>`;
+                    feed.innerHTML += `<div class="p-2 border-b text-[11px]"><b class="text-slate-400 uppercase">${d.user}:</b> <span class="text-slate-600">${d.text}</span></div>`;
                 });
                 feed.scrollTop = feed.scrollHeight;
             });
@@ -153,20 +168,24 @@
             const layer = document.getElementById('sporen-layer');
             layer.innerHTML = "";
             
-            // Get data from Firebase
-            onValue(ref(db, `${myKlas}/pd_objects`), (snapshot) => {
-                snapshot.forEach(child => {
-                    drawImg(child.val(), false);
-                });
-                if(activeSpoor) drawImg(activeSpoor, true);
-            }, { onlyOnce: true });
+            // 1. Teken alle reeds geplaatste objecten uit de database
+            currentObjects.forEach(data => {
+                drawImg(data, false);
+            });
+
+            // 2. Teken het actieve preview object van het OC (indien aanwezig)
+            if(userRole === 'oc' && activeSpoor) {
+                drawImg(activeSpoor, true);
+            }
         }
 
         function drawImg(data, isPreview) {
             const layer = document.getElementById('sporen-layer');
             const img = document.createElement('img');
             img.src = data.img;
-            img.className = 'placed-spoor' + (isPreview ? ' border-blue-400 border-2 border-dashed' : '');
+            img.className = 'placed-spoor' + (isPreview ? ' oc-preview' : '');
+            
+            // Gebruik % voor schaalbaarheid op elk scherm
             img.style.left = data.x + '%';
             img.style.top = data.y + '%';
             img.style.width = (10 * data.s) + '%';
@@ -176,11 +195,14 @@
                 img.onmousedown = (e) => {
                     const rect = document.getElementById('canvas-container').getBoundingClientRect();
                     document.onmousemove = (me) => {
-                        activeSpoor.x = ((me.clientX - rect.left) / rect.width) * 100 - 5;
-                        activeSpoor.y = ((me.clientY - rect.top) / rect.height) * 100 - 5;
-                        renderLayer();
+                        activeSpoor.x = ((me.clientX - rect.left) / rect.width) * 100 - ( (10 * activeSpoor.s) / 2 );
+                        activeSpoor.y = ((me.clientY - rect.top) / rect.height) * 100 - ( (10 * activeSpoor.s) / 2 );
+                        img.style.left = activeSpoor.x + '%';
+                        img.style.top = activeSpoor.y + '%';
                     };
-                    document.onmouseup = () => document.onmousemove = null;
+                    document.onmouseup = () => {
+                        document.onmousemove = null;
+                    };
                 };
             }
             layer.appendChild(img);
@@ -188,15 +210,17 @@
 
         window.submitReport = () => {
             const val = document.getElementById('msg-input').value;
-            if(!val) return;
+            if(!val || val.toLowerCase().includes("meerdere")) return alert("Ongeldige invoer (check 'meerdere')");
             push(ref(db, `${myKlas}/livefeed`), { user: myName, text: val });
             document.getElementById('msg-input').value = "";
         };
 
         window.resetClassData = () => {
-            if(confirm("PD Resetten?")) {
+            if(confirm("PD Resetten? Alle sporen en teksten voor deze klas worden gewist.")) {
                 remove(ref(db, `${myKlas}/pd_objects`));
                 remove(ref(db, `${myKlas}/livefeed`));
+                activeSpoor = null;
+                renderLayer();
             }
         };
     </script>
