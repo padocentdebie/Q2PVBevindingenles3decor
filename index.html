@@ -1,41 +1,243 @@
-// --- CONFIGURATIE VAN DE LOCATIES ---
-const standplaatsen = [
-    { id: 'A', name: 'bij het Raam', img: 'img/leerplein_raam.jpg' },
-    { id: 'B', name: 'bij de Deur', img: 'img/leerplein_deur.jpg' },
-    { id: 'C', name: 'bij de Achterwand', img: 'img/leerplein_achterwand.jpg' }
-];
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NATO PD-Training | Visuele Regie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f8fafc; color: #334155; font-family: ui-sans-serif, system-ui, sans-serif; }
+        
+        /* Container voor het decor en de sporen */
+        #canvas-container { 
+            position: relative; 
+            width: 100%; 
+            aspect-ratio: 16 / 9; 
+            background: #000; 
+            overflow: hidden; 
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+        }
 
-// --- OC ACTIE: VISUEEL SPOOR PUSHEN ---
-window.addSpoor = function(spoorType) {
-    let imgUrl = "";
-    let label = "";
+        #decor-img { width: 100%; height: 100%; object-fit: cover; }
 
-    // Verwijs hier naar je eigen geüploade bestanden
-    switch(spoorType) {
-        case 'voetafdruk':
-            imgUrl = "img/spoor_schoen.jpg";
-            label = "SPOOR: AFDRUK TER HOOGTE VAN TAFEL 4";
-            break;
-        case 'schroevendraaier':
-            imgUrl = "img/spoor_schroevendraaier.jpg";
-            label = "SPOOR: GEREEDSCHAP NABIJ LOCKERS";
-            break;
-        case 'tas':
-            imgUrl = "img/spoor_tas.jpg";
-            label = "SPOOR: VOORWERP ONDER HET RAAM";
-            break;
-        case 'handschoenen':
-            imgUrl = "img/spoor_handschoen.jpg";
-            label = "SPOOR: MATERIAAL OP DE VLOER";
-            break;
-    }
+        /* De sporen die geplaatst worden */
+        .placed-spoor { 
+            position: absolute; 
+            transform-origin: center center;
+            user-select: none;
+            z-index: 10;
+        }
 
-    const feedRef = ref(db, `${myKlas}/feed`);
-    push(feedRef, {
-        user: "OC",
-        img: imgUrl, // De student ziet nu jouw eigen foto
-        label: label,
-        type: 'spoor-visueel',
-        timestamp: serverTimestamp()
-    });
-};
+        /* Alleen OC mag slepen, student kijkt alleen */
+        .student-view .placed-spoor { pointer-events: none; }
+        .oc-view .placed-spoor { cursor: move; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
+
+        .live-feed { height: 350px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-radius: 8px; }
+    </style>
+</head>
+<body class="p-4 lg:p-8">
+
+    <div id="login-overlay" class="fixed inset-0 bg-slate-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-slate-200">
+            <h2 class="text-xl font-bold mb-6 text-slate-800 text-center uppercase tracking-tight">NATO Training Inlog</h2>
+            <input type="text" id="username" placeholder="Naam / Roepnummer" class="w-full p-3 border rounded-lg mb-4">
+            <select id="klas" class="w-full p-3 border rounded-lg mb-6">
+                <option value="NATO_1_Alpha">NATO 1 - Alpha</option>
+                <option value="NATO_2_Bravo">NATO 2 - Bravo</option>
+                <option value="NATO_3_Charlie">NATO 3 - Charlie</option>
+            </select>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="initApp('student')" class="bg-slate-800 text-white py-3 rounded-lg font-bold uppercase text-xs">Student</button>
+                <button onclick="initApp('oc')" class="bg-slate-400 text-white py-3 rounded-lg font-bold uppercase text-xs">OC Regie</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden max-w-7xl mx-auto space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-8 space-y-4">
+                <div id="canvas-container" class="border border-slate-300">
+                    <img id="decor-img" src="">
+                    <div id="sporen-layer"></div>
+                </div>
+
+                <div id="oc-panel" class="hidden bg-slate-100 p-6 rounded-xl border border-slate-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest">OC PD-Regie</span>
+                        <button onclick="resetClassData()" class="text-red-500 text-[10px] font-bold uppercase hover:underline">Reset PD</button>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <button onclick="prepareSpoor('zoolspoor.png')" class="bg-white border px-4 py-2 rounded text-[10px] font-bold uppercase">Schoenafdruk</button>
+                        <button onclick="prepareSpoor('schroevendraaier.png')" class="bg-white border px-4 py-2 rounded text-[10px] font-bold uppercase">Schroevendraaier</button>
+                        <button onclick="prepareSpoor('tas.png')" class="bg-white border px-4 py-2 rounded text-[10px] font-bold uppercase">Zwarte Tas</button>
+                        <button onclick="prepareSpoor('handschoenen.png')" class="bg-white border px-4 py-2 rounded text-[10px] font-bold uppercase">Handschoenen</button>
+                    </div>
+
+                    <div id="transform-tools" class="hidden border-t pt-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <span class="text-[10px] font-bold text-slate-400">AANPASSEN:</span>
+                            <button onclick="adj(1.1, 0)" class="w-8 h-8 bg-white border rounded">+</button>
+                            <button onclick="adj(0.9, 0)" class="w-8 h-8 bg-white border rounded">-</button>
+                            <button onclick="adj(1, 15)" class="w-8 h-8 bg-white border rounded">↻</button>
+                        </div>
+                        <button onclick="finalizeSpoor()" class="bg-slate-800 text-white px-6 py-2 rounded text-[10px] font-bold uppercase tracking-widest">Plaats op PD</button>
+                    </div>
+                </div>
+
+                <div id="feed-container" class="live-feed p-4 space-y-2"></div>
+            </div>
+
+            <div class="lg:col-span-4 space-y-4">
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-xs font-bold uppercase text-slate-400 mb-4 tracking-widest">Waarneming</h3>
+                    <textarea id="msg-input" class="w-full bg-slate-50 border rounded-lg p-4 text-sm text-slate-600 focus:outline-none focus:border-slate-400" rows="14" placeholder="Beschrijf de situatie objectief..."></textarea>
+                    <button onclick="submitReport()" class="w-full bg-slate-800 text-white mt-4 py-4 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-slate-700 transition">Verzenden</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB12mTMBnuxdC4W4htyFO_C7Dnh3maVKew",
+            authDomain: "decoroefening.firebaseapp.com",
+            databaseURL: "https://decoroefening-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "decoroefening",
+            appId: "1:945998495824:web:a76dc7519b3b262a021155"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let myName, myKlas, userRole;
+        let activeSpoor = null; // Voorbeeld: { x: 50, y: 50, s: 1, r: 0, img: '' }
+
+        const views = [
+            { n: 'Raam', i: 'leerplein_raam.jpg' },
+            { n: 'Deur', i: 'leerplein_deur.jpg' },
+            { n: 'Achterwand', i: 'leerplein_achterwand.jpg' }
+        ];
+
+        window.initApp = (role) => {
+            myName = document.getElementById('username').value.trim();
+            myKlas = document.getElementById('klas').value;
+            userRole = role;
+            if(!myName) return alert("Roepnummer?");
+            
+            const pick = views[Math.floor(Math.random() * views.length)];
+            document.getElementById('decor-img').src = pick.i;
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('app-container').classList.remove('hidden');
+            document.body.classList.add(role === 'oc' ? 'oc-view' : 'student-view');
+
+            if(role === 'oc') document.getElementById('oc-panel').classList.remove('hidden');
+            
+            startListeners();
+        };
+
+        // --- OC PD REGIE ---
+        window.prepareSpoor = (img) => {
+            activeSpoor = { x: 40, y: 40, s: 1, r: 0, img: img, isPreview: true };
+            renderLayer();
+            document.getElementById('transform-tools').classList.remove('hidden');
+        };
+
+        window.adj = (s, r) => {
+            if(!activeSpoor) return;
+            activeSpoor.s *= s;
+            activeSpoor.r += r;
+            renderLayer();
+        };
+
+        window.finalizeSpoor = () => {
+            if(!activeSpoor) return;
+            const finalData = {...activeSpoor};
+            delete finalData.isPreview;
+            push(ref(db, `${myKlas}/pd_objects`), finalData);
+            activeSpoor = null;
+            document.getElementById('transform-tools').classList.add('hidden');
+        };
+
+        function renderLayer() {
+            // Deze functie wordt getriggerd door Firebase voor studenten
+            // En lokaal door de preview voor het OC
+        }
+
+        function startListeners() {
+            // Luister naar objecten op de PD
+            onValue(ref(db, `${myKlas}/pd_objects`), (snapshot) => {
+                const layer = document.getElementById('sporen-layer');
+                layer.innerHTML = ""; // Schoon scherm
+                
+                snapshot.forEach(child => {
+                    const data = child.val();
+                    addImgToLayer(data, false);
+                });
+
+                // Als OC een preview heeft, ook die tekenen
+                if(userRole === 'oc' && activeSpoor) {
+                    addImgToLayer(activeSpoor, true);
+                }
+            });
+
+            // Luister naar tekstberichten
+            onValue(ref(db, `${myKlas}/livefeed`), (snapshot) => {
+                const feed = document.getElementById('feed-container');
+                feed.innerHTML = "";
+                snapshot.forEach(c => {
+                    const d = c.val();
+                    feed.innerHTML += `<div class="p-2 border-b text-[11px] font-medium text-slate-500"><b>${d.user}:</b> ${d.text}</div>`;
+                });
+                feed.scrollTop = feed.scrollHeight;
+            });
+        }
+
+        function addImgToLayer(data, isPreview) {
+            const layer = document.getElementById('sporen-layer');
+            const img = document.createElement('img');
+            img.src = data.img;
+            img.className = 'placed-spoor' + (isPreview ? ' border-2 border-dashed border-blue-400' : '');
+            img.style.left = data.x + '%';
+            img.style.top = data.y + '%';
+            img.style.width = (10 * data.s) + '%'; // Schalen t.o.v. container breedte
+            img.style.transform = `rotate(${data.r}deg)`;
+
+            if(userRole === 'oc' && isPreview) {
+                img.onmousedown = (e) => {
+                    const rect = document.getElementById('canvas-container').getBoundingClientRect();
+                    document.onmousemove = (moveE) => {
+                        activeSpoor.x = ((moveE.clientX - rect.left) / rect.width) * 100 - 5;
+                        activeSpoor.y = ((moveE.clientY - rect.top) / rect.height) * 100 - 5;
+                        img.style.left = activeSpoor.x + '%';
+                        img.style.top = activeSpoor.y + '%';
+                    };
+                    document.onmouseup = () => {
+                        document.onmousemove = null;
+                        renderLayer(); // Update de preview data
+                    };
+                };
+            }
+            layer.appendChild(img);
+        }
+
+        window.submitReport = () => {
+            const val = document.getElementById('msg-input').value;
+            if(!val || val.toLowerCase().includes("meerdere")) return alert("Ongeldige invoer.");
+            push(ref(db, `${myKlas}/livefeed`), { user: myName, text: val });
+            document.getElementById('msg-input').value = "";
+        };
+
+        window.resetClassData = () => {
+            if(confirm("PD volledig resetten voor deze klas?")) {
+                remove(ref(db, `${myKlas}/pd_objects`));
+                remove(ref(db, `${myKlas}/livefeed`));
+            }
+        };
+    </script>
+</body>
+</html>
